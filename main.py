@@ -21,7 +21,7 @@ def matrix_8x8_to_hex_list(m: list[list[int]]):
     return lst
 
 
-############### OPERACJE PERMUTATION
+############### OPERACJE DLA P256
 def add_constant(X: list, k: list):
     new_X = copy.deepcopy(X)
     RC = [1, 3, 7, 14, 13, 11, 6, 12, 9, 2, 5, 10]
@@ -81,7 +81,7 @@ def mix_column_serial(X):
     return new_X
 
 
-# P256
+############### P256 - wykorzystuje powyższe funkcje^
 def PHOTON_256(input_hex_str="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"):
     if type(input_hex_str) == "":
         input_hex_str = [int(i, 16) for i in input_hex_str]
@@ -132,9 +132,8 @@ def rho_inverse(S, V):
     S = list_xor(S, Ozs(U, r))
     return (S, U)
 
-
+# Funkcje pomocnicza
 def divide_chunks(l, n):
-    # looping till length l
     lst = []
     for i in range(0, len(l), n):
         lst.append(l[i:i + n])
@@ -158,19 +157,14 @@ def hex_list_to_bits_list(lst):
 
 
 def step_1_sub(IV, A, r, c0=0):
-    # IV => list of bits {0,1} - to - list of hex values
-    # c0 can be (1,2,3,4)
     assert len(IV) == 256
-    # PHOTON
     IV = bits_list_to_hex_list(IV)
     IV = PHOTON_256(IV)
     IV = hex_list_to_bits_list(IV)
     assert len(IV) == 256
     part_r, part_c = IV[:r], IV[r:]
     assert len(part_r) == len(A)
-    # PART-R Transformation
     part_r = list_xor(part_r, A)
-    # PART-C Transformation
     if c0 == 0:
         pass
     elif c0 == 1:
@@ -182,7 +176,6 @@ def step_1_sub(IV, A, r, c0=0):
         part_c[-2] ^= 1
     elif c0 == 4:
         part_c[-3] ^= 1
-    # Combining
     IV = part_r + part_c
     return IV
 
@@ -192,7 +185,6 @@ def step_1(N, K, A, r, c0):
     if len(A) == 0:
         return N + K
     else:
-        # chunks of length "r"
         A_lst = list(divide_chunks(A, r))
         last_ele = Ozs(A_lst.pop(), r)
         IV = N + K
@@ -204,14 +196,11 @@ def step_1(N, K, A, r, c0):
 
 def step_2_sub(IV, M, r, c1=0):
     assert len(IV) == 256
-    # Photon beetle
     IV = bits_list_to_hex_list(IV)
     IV = PHOTON_256(IV)
     IV = hex_list_to_bits_list(IV)
     part_r, part_c = IV[:r], IV[r:]
-    # PART-R Transformation
     part_r, C = rho(part_r, M)
-    # PART-C Transformation
     if c1 == 0:
         pass
     elif c1 == 1:
@@ -224,7 +213,6 @@ def step_2_sub(IV, M, r, c1=0):
     elif c1 == 6:
         part_c[-2] ^= 1
         part_c[-3] ^= 1
-    # Combining
     IV = part_r + part_c
     return (IV, C)
 
@@ -246,13 +234,8 @@ def step_2(IV, M, r, c1):
         IV = PHOTON_256(IV)
         IV = hex_list_to_bits_list(IV)
         tag = IV[:128]
-
         return (C_lst, tag)
 
-
-# K = bits list , len(k) arbitary
-# N = bits list , len(N) arbitary
-# len(K) + len(N) == 256
 def photon_beetle_enc(K, N, A, M, r=128):
     assert len(K) + len(N) == 256
 
@@ -260,15 +243,12 @@ def photon_beetle_enc(K, N, A, M, r=128):
     choice_c1 = {"11": 1, "10": 2, "01": 5, "00": 6, }
     c0 = choice_c0[f"{int(len(M) > 0)}{int(len(A) % r == 0)}"]
     c1 = choice_c1[f"{int(len(A) > 0)}{int(len(M) % r == 0)}"]
-    m_length = len(M)
     IV = step_1(N, K, A, r, c0)
     C, T = step_2(IV, M, r, c1)
     return [C, T]
 
 
 def step_2_dec_sub(IV, C, r, c1=0):
-    # c1 can be (1,2,5,6)
-    # returns
     IV = bits_list_to_hex_list(IV)
     IV = PHOTON_256(IV)
     IV = hex_list_to_bits_list(IV)
@@ -316,7 +296,6 @@ def photon_beetle_dec(K, N, A, C, T, r=128):
     c0 = choice_c0[f"{int(len(C) > 0)}{int(len(A) % r == 0)}"]
     c1 = choice_c1[f"{int(len(A) > 0)}{int(len(C) % r == 0)}"]
     c_length = len(C)
-    # STEP 1 SAME AS ENCRYPTION
     IV = step_1(N, K, A, r, c0)
     M, new_T = step_2_dec(IV, C, r, c1)
     return [M[:c_length], new_T]
@@ -327,20 +306,20 @@ def generate_random_bit_list(l):
     return lst
 
 
-my_K = generate_random_bit_list(128)
-my_N = generate_random_bit_list(128)
-my_A = generate_random_bit_list(500)
-my_M = generate_random_bit_list(700)
+Key = generate_random_bit_list(128)
+Nonce = generate_random_bit_list(128)
+Associated = generate_random_bit_list(500)
+Message = generate_random_bit_list(400)
 
-# ENCRYPTION
-my_C, my_T = photon_beetle_enc(my_K, my_N, my_A, my_M)
-# DECRYPTION
-out_M, out_T = photon_beetle_dec(my_K, my_N, my_A, my_C, my_T)
+#Szyfrowanie
+Ciphertext, Tag = photon_beetle_enc(Key, Nonce, Associated, Message)
+#Deszyfrowanie
+out_Message, out_Tag = photon_beetle_dec(Key, Nonce, Associated, Ciphertext, Tag)
 
-my_M_str = "".join(map(str, my_M))
-out_M_str = "".join(map(str, out_M))
-my_T_str = "".join(map(str, my_T))
-out_T_str = "".join(map(str, out_T))
+my_M_str = "".join(map(str, Message))
+out_M_str = "".join(map(str, out_Message))
+my_T_str = "".join(map(str, Message))
+out_T_str = "".join(map(str, out_Tag))
 print("Message", my_M_str == out_M_str)
 print("Tag    ", my_T_str == out_T_str)
 
