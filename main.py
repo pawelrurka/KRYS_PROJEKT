@@ -101,21 +101,11 @@ def Ozs(V,r):
     assert len(V) == r
     return V
 def rho(S,U):
-    # S = list of bits - State Bits
-    # U = list of bits - Message Bits
-    # len(U)  <= len(S)
-    # mostly len(S)  == len(V) == r
-    # input   : (part_r,M)
-    # returns : (part_r,C)
     r = len(S)
     V = list_xor(shuffle(S)[:len(U)],U)
     S = list_xor(S,Ozs(U,r))
     return (S,V)
 def rho_inverse(S,V):
-    # S = list of bits - State Bits
-    # V = list of bits - Cipher Bits
-    # len(S)  <= len(V)
-    # mostly len(S)  == len(V) == r
     r = len(S)
     U = list_xor(shuffle(S)[:len(V)],V)
     S = list_xor(S,Ozs(U,r))
@@ -145,8 +135,6 @@ def hex_list_to_bits_list(lst):
         new_list += [int(digit) for digit in '{:04b}'.format(i)]
     return new_list
 
-
-## --------------------------------------------STEP_1 --------------------------------------------------------
 def step_1_sub(IV, A, r, c0=0):
     # IV => list of bits {0,1} - to - list of hex values
     # c0 can be (1,2,3,4)
@@ -191,8 +179,6 @@ def step_1(N, K, A, r, c0):
         IV = step_1_sub(IV, last_ele, r, c0)
         return IV
 
-
-## --------------------------------------------STEP_2 --------------------------------------------------------
 def step_2_sub(IV, M, r, c1=0):
     assert len(IV) == 256
     # Photon beetle
@@ -240,8 +226,6 @@ def step_2(IV, M, r, c1):
 
         return (C_lst, tag)
 
-
-## ----------------------------------------- MAIN INTERFACE-ENCRYPTION ---------------------------------------
 # K = bits list , len(k) arbitary
 # N = bits list , len(N) arbitary
 # len(K) + len(N) == 256
@@ -313,7 +297,7 @@ def photon_beetle_dec(K,N,A,C,T,r=128):
 def generate_random_bit_list(l):
     lst = [ random.choice([0,1]) for i in range(l)]
     return lst
-# GENERATING RANDOM BIT STREAMS
+
 my_K = generate_random_bit_list(128)
 my_N = generate_random_bit_list(128)
 my_A = generate_random_bit_list(500)
