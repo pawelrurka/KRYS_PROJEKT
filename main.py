@@ -353,7 +353,7 @@ def dec_str(cipher_text:str,tag_str:str):
     else:
         return "--NOPE--"
 
-c,t = enc_str("Twoja stara zapierdala do biedronki po kondomki")
+c,t = enc_str("ABC")
 
 print("Cipher text :",c)
 
